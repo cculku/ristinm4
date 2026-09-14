@@ -1,7 +1,52 @@
 # 간단한 가계부 프로그램
 # 지출 내역을 추가하고, 목록을 보고, 총 지출을 확인할 수 있습니다.
+# 지출 내역은 CSV 파일(expenses.csv)에 저장되어 프로그램을 다시 실행해도 유지됩니다.
+
+import csv
+import os
+
+CSV_FILE = "expenses.csv"
 
 expenses = []  # 각 항목은 {"amount": 금액, "description": 내용} 형태의 딕셔너리
+
+
+def load_expenses():
+    """expenses.csv 파일을 읽어서 지출 내역 리스트를 반환합니다.
+    파일이 없거나, 비어 있거나, 형식이 잘못된 줄이 있어도 프로그램이 멈추지 않습니다."""
+    loaded = []
+
+    if not os.path.exists(CSV_FILE):
+        return loaded
+
+    try:
+        with open(CSV_FILE, "r", encoding="utf-8", newline="") as file:
+            reader = csv.reader(file)
+            for row in reader:
+                # 한 줄에 금액, 내용 두 항목이 없으면 잘못된 줄이므로 건너뜁니다.
+                if len(row) != 2:
+                    continue
+
+                try:
+                    amount = float(row[0])
+                except ValueError:
+                    continue  # 금액이 숫자가 아니면 건너뜁니다.
+
+                description = row[1]
+                loaded.append({"amount": amount, "description": description})
+    except OSError as error:
+        print(f"저장된 지출 내역을 불러오는 중 오류가 발생했습니다: {error}")
+
+    return loaded
+
+
+def save_expense_to_file(expense):
+    """새로운 지출 한 건을 CSV 파일 맨 끝에 추가로 저장합니다."""
+    try:
+        with open(CSV_FILE, "a", encoding="utf-8", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow([expense["amount"], expense["description"]])
+    except OSError as error:
+        print(f"지출 내역을 저장하는 중 오류가 발생했습니다: {error}")
 
 
 def get_amount(prompt):
@@ -20,7 +65,9 @@ def get_amount(prompt):
 def add_expense():
     amount = get_amount("지출 금액을 입력하세요: ")
     description = input("지출 내용을 입력하세요: ")
-    expenses.append({"amount": amount, "description": description})
+    expense = {"amount": amount, "description": description}
+    expenses.append(expense)
+    save_expense_to_file(expense)
     print("지출 내역이 추가되었습니다.")
 
 
@@ -49,6 +96,10 @@ def show_menu():
 
 def main():
     print("가계부 프로그램을 시작합니다.")
+
+    expenses.extend(load_expenses())
+    if expenses:
+        print(f"저장된 지출 내역 {len(expenses)}건을 불러왔습니다.")
 
     while True:
         show_menu()
